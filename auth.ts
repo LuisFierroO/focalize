@@ -2,8 +2,10 @@ import NextAuth from "next-auth";
 import Resend from "next-auth/providers/resend";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/infrastructure/db/prisma/client";
+import { authConfig } from "./auth.config";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   adapter: PrismaAdapter(prisma),
   providers: [
     Resend({
@@ -12,7 +14,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const { Resend: ResendClient } = await import("resend");
         const resend = new ResendClient(process.env.RESEND_API_KEY!);
 
-        // Redirige a /verify (cliente) para evitar que Gmail consuma el token con prefetch
         const verifyUrl = url.replace(
           /\/api\/auth\/callback\/resend/,
           "/verify"
@@ -45,19 +46,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  pages: {
-    signIn: "/login",
-    verifyRequest: "/login",
-    error: "/login",
-  },
-  session: { strategy: "jwt" },
-  callbacks: {
-    signIn({ user }) {
-      // Solo permite el acceso al email autorizado
-      return user.email === process.env.ALLOWED_EMAIL;
-    },
-    authorized({ auth }) {
-      return !!auth;
-    },
-  },
 });
